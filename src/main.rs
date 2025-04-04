@@ -2,7 +2,7 @@ use std::sync::atomic::Ordering;
 
 mod body;
 mod partition;
-mod quadtree;
+mod octtree;
 mod renderer;
 mod simulation;
 mod utils;
@@ -48,9 +48,9 @@ fn render(simulation: &mut Simulation) {
         lock.extend_from_slice(&simulation.bodies);
     }
     {
-        let mut lock = renderer::QUADTREE.lock();
+        let mut lock = renderer::OCTTREE.lock();
         lock.clear();
-        lock.extend_from_slice(&simulation.quadtree.nodes);
+        lock.extend_from_slice(&simulation.octtree.nodes);
     }
     *lock |= true;
 }

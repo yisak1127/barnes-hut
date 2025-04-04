@@ -1,5 +1,5 @@
 use crate::body::Body;
-use ultraviolet::Vec2;
+use ultraviolet::Vec3;
 
 pub fn uniform_disc(n: usize) -> Vec<Body> {
     fastrand::seed(0);
@@ -9,16 +9,18 @@ pub fn uniform_disc(n: usize) -> Vec<Body> {
     let mut bodies: Vec<Body> = Vec::with_capacity(n);
 
     let m = 1e6;
-    let center = Body::new(Vec2::zero(), Vec2::zero(), m as f32, inner_radius);
+    let center = Body::new(Vec3::zero(), Vec3::zero(), m as f32, inner_radius);
     bodies.push(center);
 
     while bodies.len() < n {
         let a = fastrand::f32() * std::f32::consts::TAU;
+        let b = fastrand::f32() * std::f32::consts::TAU/2.0;
         let (sin, cos) = a.sin_cos();
+        let (sin_phi, cos_phi) = b.sin_cos();
         let t = inner_radius / outer_radius;
         let r = fastrand::f32() * (1.0 - t * t) + t * t;
-        let pos = Vec2::new(cos, sin) * outer_radius * r.sqrt();
-        let vel = Vec2::new(sin, -cos);
+        let pos = Vec3::new(cos*sin_phi, sin*sin_phi, cos_phi) * outer_radius * r.sqrt();
+        let vel = Vec3::new(sin*sin_phi, -cos*sin_phi, sin_phi);
         let mass = 1.0f32;
         let radius = mass.cbrt();
 
@@ -29,7 +31,7 @@ pub fn uniform_disc(n: usize) -> Vec<Body> {
     let mut mass = 0.0;
     for i in 0..n {
         mass += bodies[i].mass;
-        if bodies[i].pos == Vec2::zero() {
+        if bodies[i].pos == Vec3::zero() {
             continue;
         }
 

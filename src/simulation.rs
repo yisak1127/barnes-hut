@@ -1,33 +1,33 @@
-use crate::{body::Body, quadtree::Quadtree, utils};
+use crate::{body::Body, octtree::Octtree, utils};
 
 use broccoli::aabb::Rect;
 use broccoli_rayon::{build::RayonBuildPar, prelude::RayonQueryPar};
-use ultraviolet::Vec2;
+use ultraviolet::Vec3;
 
 pub struct Simulation {
     pub dt: f32,
     pub frame: usize,
     pub bodies: Vec<Body>,
-    pub quadtree: Quadtree,
+    pub octtree: Octtree,
 }
 
 impl Simulation {
     pub fn new() -> Self {
         let dt = 0.05;
-        let n = 100000;
+        let n = 10000;
         let theta = 1.0;
         let epsilon = 1.0;
         let leaf_capacity = 16;
         let thread_capacity = 1024;
 
         let bodies: Vec<Body> = utils::uniform_disc(n);
-        let quadtree = Quadtree::new(theta, epsilon, leaf_capacity, thread_capacity);
+        let octtree = Octtree::new(theta, epsilon, leaf_capacity, thread_capacity);
 
         Self {
             dt,
             frame: 0,
             bodies,
-            quadtree,
+            octtree,
         }
     }
 
@@ -39,8 +39,8 @@ impl Simulation {
     }
 
     pub fn attract(&mut self) {
-        self.quadtree.build(&mut self.bodies);
-        self.quadtree.acc(&mut self.bodies);
+        self.octtree.build(&mut self.bodies);
+        self.octtree.acc(&mut self.bodies);
     }
 
     pub fn iterate(&mut self) {
@@ -50,20 +50,20 @@ impl Simulation {
     }
 
     pub fn collide(&mut self) {
-        let mut rects = self
+        let mut rects: Vec<(Rect<_>, usize)> = self
             .bodies
             .iter()
             .enumerate()
             .map(|(index, body)| {
                 let pos = body.pos;
                 let radius = body.radius;
-                let min = pos - Vec2::one() * radius;
-                let max = pos + Vec2::one() * radius;
+                let min = pos - Vec3::one() * radius;
+                let max = pos + Vec3::one() * radius;
                 (Rect::new(min.x, max.x, min.y, max.y), index)
             })
             .collect::<Vec<_>>();
 
-            let mut broccoli = broccoli::Tree::par_new(&mut rects);
+            let mut broccoli: broccoli::Tree<'_, (Rect<_>, usize)> = broccoli::Tree::par_new(&mut rects);
 
             let ptr = self as *mut Self as usize;
     
@@ -107,7 +107,7 @@ impl Simulation {
         let weight1 = m2 / (m1 + m2);
         let weight2 = m1 / (m1 + m2);
 
-        if d_dot_v >= 0.0 && d != Vec2::zero() {
+        if d_dot_v >= 0.0 && d != Vec3::zero() {
             let tmp = d * (r / d.mag() - 1.0);
             self.bodies[i].pos -= weight1 * tmp;
             self.bodies[j].pos += weight2 * tmp;
